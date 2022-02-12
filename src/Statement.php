@@ -60,6 +60,6 @@ final class Statement implements StatementInterface
             return $this->connection->escape($value);
         }
 
-        return $value;
+        return (string) $value;
     }
 }
