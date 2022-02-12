@@ -33,22 +33,23 @@ class Result implements ResultInterface
 
     public function fetchOne()
     {
-        return $this->connection->fetchRow($this->result)[0];
+        $result = $this->connection->fetchRow($this->result);
+        return $result ? $result[0] : false;
     }
 
     public function fetchAllNumeric(): array
     {
-        return $this->fetchAll('fetchNumeric');
+        return $this->connection->fetchAll($this->result, SW_PGSQL_NUM) ?: [];
     }
 
     public function fetchAllAssociative(): array
     {
-        return $this->fetchAll('fetchAssociative');
+        return $this->connection->fetchAll($this->result, SW_PGSQL_ASSOC) ?: [];
     }
 
     public function fetchFirstColumn(): array
     {
-        return array_column($this->fetchAll('fetchNumeric'), 0);
+        return array_column($this->fetchAllNumeric(), 0);
     }
 
     public function rowCount(): int
@@ -64,16 +65,5 @@ class Result implements ResultInterface
     public function free(): void
     {
         $this->result = null;
-    }
-
-    private function fetchAll(string $method): array
-    {
-        $result_set = [];
-
-        while ($row = [$this, $method]) {
-            $result_set[] = $row;
-        }
-
-        return $result_set;
     }
 }
