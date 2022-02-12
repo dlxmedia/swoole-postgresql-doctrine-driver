@@ -10,6 +10,8 @@ services:
     command: validate
     volumes:
     - ./:/var/www
+    depends_on:
+      - db
 
   php:
     build: .

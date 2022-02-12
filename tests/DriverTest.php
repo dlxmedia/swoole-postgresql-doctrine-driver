@@ -36,3 +36,17 @@ it('executes concurrently when inside coroutines', function (): void {
         expect($actual)->toMatchArray($expected);
     });
 });
+
+it('executes prepare statements', function (): void {
+    Coroutine\run(static function (): void {
+        $stmt = conn()->prepare('select ? as total');
+        $stmt->bindValue(1, 'testing');
+        $actual = $stmt->executeQuery()->fetchOne();
+        expect($actual)->toBe('testing');
+    });
+
+    Coroutine\run(static function (): void {
+        $actual = conn()->executeQuery('select :param as total', ['param' => 'testing'])->fetchOne();
+        expect($actual)->toBe('testing');
+    });
+});
