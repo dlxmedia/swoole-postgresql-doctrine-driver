@@ -2,7 +2,6 @@
 
 namespace Doctrine\DBAL\Driver\Swoole\Coroutine\PostgreSQL;
 
-use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
@@ -18,7 +17,11 @@ final class Statement implements StatementInterface
     {
         $this->connection = $connection;
         $this->params = [];
-        $this->key = md5($sql);
+        $this->key = uniqid(md5($sql));
+
+        if (isset($this->statements[$this->key])) {
+            return;
+        }
 
         $count = 0;
         $sql = preg_replace_callback('/\s(\?[\s\d]?)/', function () use (&$count) {
@@ -26,9 +29,14 @@ final class Statement implements StatementInterface
             return ' $'.$count.' ';
         }, $sql);
 
-        $result = $this->connection->prepare($this->key, $sql);
+        try {
+            $result = $this->connection->prepare($this->key, $sql);
+        } catch (\Exception $e) {
+            throw new \Doctrine\DBAL\Exception('Error adding statement: '.$sql, $e->getCode(), $e);
+        }
+
         if (!$result) {
-            throw new \Doctrine\DBAL\Exception($this->connection->error);
+            throw new \Doctrine\DBAL\Exception($this->connection->errCode. ': '.$this->connection->error);
         }
     }
 
@@ -57,7 +65,7 @@ final class Statement implements StatementInterface
     private function escape($value, int $type): string
     {
         if ($type === ParameterType::STRING) {
-            return $this->connection->escape($value);
+            return (string) $this->connection->escape((string) $value);
         }
 
         return (string) $value;
